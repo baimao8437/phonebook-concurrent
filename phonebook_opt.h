@@ -2,7 +2,6 @@
 #define _PHONEBOOK_H
 
 #include <pthread.h>
-#include <time.h>
 
 #define MAX_LAST_NAME_SIZE 16
 
@@ -36,8 +35,8 @@ typedef struct _thread_argument {
     int threadID;
     int numOfThread;
     entry *lEntryPool_begin;    /* The local entry pool */
-    entry *lEntry_head;	/* local entry linked list */
-    entry *lEntry_tail;	/* local entry linked list */
+    entry *lEntry_head;         /* local entry linked list */
+    entry *lEntry_tail;         /* local entry linked list */
 } thread_arg;
 
 thread_arg *createThread_arg(char *data_begin, char *data_end,
@@ -47,7 +46,5 @@ thread_arg *createThread_arg(char *data_begin, char *data_end,
 void append(void *arg);
 
 void show_entry(entry *pHead);
-
-static double diff_in_second(struct timespec t1, struct timespec t2);
 
 #endif

@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/mman.h>
+#include "stopwatch.h"
 
 #include IMPL
 
@@ -29,29 +30,14 @@
 
 #define DICT_FILE "./dictionary/words.txt"
 
-static double diff_in_second(struct timespec t1, struct timespec t2)
-{
-    struct timespec diff;
-    if (t2.tv_nsec-t1.tv_nsec < 0) {
-        diff.tv_sec  = t2.tv_sec - t1.tv_sec - 1;
-        diff.tv_nsec = t2.tv_nsec - t1.tv_nsec + 1000000000;
-    } else {
-        diff.tv_sec  = t2.tv_sec - t1.tv_sec;
-        diff.tv_nsec = t2.tv_nsec - t1.tv_nsec;
-    }
-    return (diff.tv_sec + diff.tv_nsec / 1000000000.0);
-}
-
 int main(int argc, char *argv[])
 {
 #ifndef OPT
     FILE *fp;
     int i = 0;
     char line[MAX_LAST_NAME_SIZE];
-#else
-    struct timespec mid;
 #endif
-    struct timespec start, end;
+    Stopwatch_struct *timer = Stopwatch_new();
     double cpu_time1, cpu_time2;
 
     /* File preprocessing */
@@ -79,7 +65,8 @@ int main(int argc, char *argv[])
     thread_arg *thread_args[THREAD_NUM];
 
     /* Start timing */
-    clock_gettime(CLOCK_REALTIME, &start);
+    Stopwatch_start(timer);
+
     /* Allocate the resource at first */
     map = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     assert(map && "mmap error");
@@ -89,37 +76,40 @@ int main(int argc, char *argv[])
 
     /* Prepare for multi-threading */
     pthread_setconcurrency(THREAD_NUM + 1);
+
     for (int i = 0; i < THREAD_NUM; i++)
         // Created by malloc, remeber to free them.
         thread_args[i] = createThread_arg(map + MAX_LAST_NAME_SIZE * i, map + file_size, i,
                                           THREAD_NUM, entry_pool + i);
+
     /* Deliver the jobs to all threads and wait for completing */
-    clock_gettime(CLOCK_REALTIME, &mid);
     for (int i = 0; i < THREAD_NUM; i++)
         pthread_create(&threads[i], NULL, (void *)&append, (void *)thread_args[i]);
 
     for (int i = 0; i < THREAD_NUM; i++)
         pthread_join(threads[i], NULL);
 
-    /* Connect the linked list of each thread */
-    for (int i = 0; i < THREAD_NUM; i++) {
-        if (i == 0) {
-            pHead = thread_args[i]->lEntry_head->pNext;
-            DEBUG_LOG("Connect %d head string %s %p\n", i,
-                      pHead->lastName, thread_args[i]->data_begin);
-        } else {
-            e->pNext = thread_args[i]->lEntry_head->pNext;
-            DEBUG_LOG("Connect %d head string %s %p\n", i,
-                      e->pNext->lastName, thread_args[i]->data_begin);
-        }
+    /* Connect the linked list of each thread, saperate the head */
+    pHead = thread_args[0]->lEntry_head->pNext;
+    DEBUG_LOG("Connect %d head string %s %p\n", 0,
+              pHead->lastName, thread_args[0]->data_begin);
+    e = thread_args[0]->lEntry_tail;
+    DEBUG_LOG("Connect %d tail string %s %p\n", 0,
+              e->lastName, thread_args[0]->data_begin);
+    DEBUG_LOG("round %d\n", 0);
 
+    for (int i = 1; i < THREAD_NUM; i++) {
+        e->pNext = thread_args[i]->lEntry_head->pNext;
+        DEBUG_LOG("Connect %d head string %s %p\n", i,
+                  e->pNext->lastName, thread_args[i]->data_begin);
         e = thread_args[i]->lEntry_tail;
         DEBUG_LOG("Connect %d tail string %s %p\n", i,
                   e->lastName, thread_args[i]->data_begin);
         DEBUG_LOG("round %d\n", i);
     }
     /* Stop timing */
-    clock_gettime(CLOCK_REALTIME, &end);
+    Stopwatch_stop(timer);
+
 #else /* ! OPT */
     pHead = (entry *) malloc(sizeof(entry));
     e = pHead;
@@ -129,8 +119,7 @@ int main(int argc, char *argv[])
     __builtin___clear_cache((char *) pHead, (char *) pHead + sizeof(entry));
 #endif
     /* Start timing */
-    clock_gettime(CLOCK_REALTIME, &start);
-
+    Stopwatch_start(timer);
     while (fgets(line, sizeof(line), fp)) {
         while (line[i] != '\0')
             i++;
@@ -140,13 +129,13 @@ int main(int argc, char *argv[])
     }
 
     /* Stop timing */
-    clock_gettime(CLOCK_REALTIME, &end);
+    Stopwatch_stop(timer);
 
     /* close file as soon as possible */
     fclose(fp);
 #endif
 
-    cpu_time1 = diff_in_second(start, end);
+    cpu_time1 = Stopwatch_read(timer);
 
     /* Find the given entry */
     /* the givn last name to find */
@@ -154,17 +143,17 @@ int main(int argc, char *argv[])
     e = pHead;
 
     assert(findName(input, e) &&
-           "Did you implement findName() in " IMPL "?");
+           "Did you implement findName() in " IMPL " ? ");
     assert(0 == strcmp(findName(input, e)->lastName, "zyxel"));
 
 #if defined(__GNUC__)
     __builtin___clear_cache((char *) pHead, (char *) pHead + sizeof(entry));
 #endif
     /* Compute the execution time */
-    clock_gettime(CLOCK_REALTIME, &start);
+    Stopwatch_reset(timer);
+    Stopwatch_start(timer);
     findName(input, e);
-    clock_gettime(CLOCK_REALTIME, &end);
-    cpu_time2 = diff_in_second(start, end);
+    cpu_time2 = Stopwatch_read(timer);
 
     /* Write the execution time to file. */
     FILE *output;
@@ -176,6 +165,7 @@ int main(int argc, char *argv[])
     printf("execution time of findName() : %lf sec\n", cpu_time2);
 
     /* Release memory */
+    Stopwatch_delete(timer);
 #ifndef OPT
     while (pHead) {
         e = pHead;

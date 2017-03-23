@@ -29,15 +29,15 @@ SRCS_common = main.c
 tools/text_align: text_align.c tools/tool-text_align.c
 	$(CC) $(CFLAGS_common) $^ -o $@
 
-phonebook_orig: $(SRCS_common) phonebook_orig.c phonebook_orig.h
+phonebook_orig: $(SRCS_common) phonebook_orig.c phonebook_orig.h stopwatch.c
 	$(CC) $(CFLAGS_common) $(CFLAGS_orig) \
 		-DIMPL="\"$@.h\"" -o $@ \
-		$(SRCS_common) $@.c
+		$(SRCS_common) $@.c stopwatch.c
 
-phonebook_opt: $(SRCS_common) phonebook_opt.c phonebook_opt.h text_align.c
+phonebook_opt: $(SRCS_common) phonebook_opt.c phonebook_opt.h text_align.c stopwatch.c
 	$(CC) $(CFLAGS_common) $(CFLAGS_opt) \
 		-DIMPL="\"$@.h\"" -o $@ \
-		$(SRCS_common) $@.c text_align.c
+		$(SRCS_common) $@.c text_align.c stopwatch.c
 
 run: $(EXEC)
 	echo 3 | sudo tee /proc/sys/vm/drop_caches
@@ -63,4 +63,4 @@ calculate: calculate.c
 .PHONY: clean
 clean:
 	$(RM) $(EXEC) *.o perf.* \
-	      	calculate orig.txt opt.txt output.txt runtime.png align.txt
+	      	calculate *.txt runtime.png
