@@ -1,5 +1,15 @@
 #include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
 #include "stopwatch.h"
+
+typedef struct timespec Time;
+
+struct Stopwatch_struct {
+    bool running;
+    Time last_time;
+    Time total;
+};
 
 static Time clock_time()
 {
@@ -34,38 +44,33 @@ static Time timeAdd(Time t1, Time t2)
     };
 }
 
-void Stopwatch_reset(Stopwatch Q)
+watch_p create(void)
 {
-    Q->running = false;
-    Q->last_time = (Time) {
-        0, 0
-    };
-    Q->total = (Time) {
-        0, 0
-    };
-}
-
-Stopwatch Stopwatch_new(void)
-{
-    Stopwatch S = (Stopwatch) malloc(sizeof(Stopwatch_struct));
+    watch_p S = malloc(sizeof(struct Stopwatch_struct));
     if (!S)
         return NULL;
 
-    Stopwatch_reset(S);
+    S->running = false;
+    S->last_time = (Time) {
+        0, 0
+    };
+    S->total = (Time) {
+        0, 0
+    };
     return S;
 }
 
-void Stopwatch_delete(Stopwatch S)
+void destroy(watch_p S)
 {
     free(S);
 }
 
 /* Start resets the timer to 0.0; use resume for continued total */
 
-void Stopwatch_start(Stopwatch Q)
+void start(watch_p Q)
 {
     if (!(Q->running)) {
-        Q->running = true;  /* true */
+        Q->running = true;
         Q->total = (Time) {
             0, 0
         };
@@ -73,12 +78,23 @@ void Stopwatch_start(Stopwatch Q)
     }
 }
 
+/* Reset and start */
+
+void restart(watch_p Q)
+{
+    Q->running = true;
+    Q->total = (Time) {
+        0, 0
+    };
+    Q->last_time = clock_time();
+}
+
 /*
     Resume timing, after stopping.  (Does not wipe out
         accumulated times.)
 */
 
-void Stopwatch_resume(Stopwatch Q)
+void resume(watch_p Q)
 {
     if (!(Q->running)) {
         Q-> last_time = clock_time();
@@ -86,7 +102,7 @@ void Stopwatch_resume(Stopwatch Q)
     }
 }
 
-void Stopwatch_stop(Stopwatch Q)
+void stop(watch_p Q)
 {
     if (Q->running) {
         Q->total = timeAdd(Q->total, timeDiff((Q->last_time), clock_time()));
@@ -94,9 +110,8 @@ void Stopwatch_stop(Stopwatch Q)
     }
 }
 
-double Stopwatch_read(Stopwatch Q)
+double read(watch_p Q)
 {
-
     if (Q->running) {
         Time t = clock_time();
         Q->total = timeAdd(Q->total, timeDiff(Q->last_time, t));
@@ -104,3 +119,14 @@ double Stopwatch_read(Stopwatch Q)
     }
     return (Q->total.tv_sec * 1000000.0 + Q->total.tv_nsec / 1000.0) / 1000000.0;
 }
+
+/* API gateway */
+struct __STOPWATCH_API__ Stopwatch = {
+    .create = create,
+    .destroy = destroy,
+    .start = start,
+    .restart = restart,
+    .stop = stop,
+    .resume = resume,
+    .read = read,
+};

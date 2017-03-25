@@ -1,18 +1,18 @@
-#include <stdbool.h>
-#include <time.h>
+#ifndef _STOPWATCH_H
+#define _STOPWATCH_H
 
-typedef struct timespec Time;
+typedef struct Stopwatch_struct *watch_p;
 
-typedef struct {
-    bool running;
-    Time last_time;
-    Time total;
-} *Stopwatch, Stopwatch_struct;
+extern struct __STOPWATCH_API__ {
+    watch_p(*create)();
+    void (*destroy)(watch_p);
 
-void Stopwatch_reset(Stopwatch Q);
-Stopwatch Stopwatch_new(void);
-void Stopwatch_delete(Stopwatch S);
-void Stopwatch_start(Stopwatch Q);
-void Stopwatch_resume(Stopwatch Q);
-void Stopwatch_stop(Stopwatch Q);
-double Stopwatch_read(Stopwatch Q);
+    void (*start)(watch_p);
+    void (*restart)(watch_p);
+    void (*stop)(watch_p);
+    void (*resume)(watch_p);
+
+    double (*read)(watch_p);
+} Stopwatch;
+
+#endif

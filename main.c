@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     int i = 0;
     char line[MAX_LAST_NAME_SIZE];
 #endif
-    Stopwatch_struct *timer = Stopwatch_new();
+    watch_p timer = Stopwatch.create();
     double cpu_time1, cpu_time2;
 
     /* File preprocessing */
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     thread_arg *thread_args[THREAD_NUM];
 
     /* Start timing */
-    Stopwatch_start(timer);
+    Stopwatch.start(timer);
 
     /* Allocate the resource at first */
     map = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     }
 
     /* Stop timing */
-    Stopwatch_stop(timer);
+    Stopwatch.stop(timer);
 
 #else /* ! OPT */
     pHead = (entry *) malloc(sizeof(entry));
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     __builtin___clear_cache((char *) pHead, (char *) pHead + sizeof(entry));
 #endif
     /* Start timing */
-    Stopwatch_start(timer);
+    Stopwatch.start(timer);
     while (fgets(line, sizeof(line), fp)) {
         while (line[i] != '\0')
             i++;
@@ -138,12 +138,12 @@ int main(int argc, char *argv[])
         e = append(line, e);
     }
     /* Stop timing */
-    Stopwatch_stop(timer);
+    Stopwatch.stop(timer);
 
     /* close file as soon as possible */
     fclose(fp);
 #endif
-    cpu_time1 = Stopwatch_read(timer);
+    cpu_time1 = Stopwatch.read(timer);
 
     /* Find the given entry */
     /* the givn last name to find */
@@ -168,10 +168,9 @@ int main(int argc, char *argv[])
     __builtin___clear_cache((char *) pHead, (char *) pHead + sizeof(entry));
 #endif
     /* Compute the execution time */
-    Stopwatch_reset(timer);
-    Stopwatch_start(timer);
+    Stopwatch.restart(timer);
     assert(findName(input, e) && "The name has been deleted");
-    cpu_time2 = Stopwatch_read(timer);
+    cpu_time2 = Stopwatch.read(timer);
 
     /* Write the execution time to file. */
     FILE *output;
@@ -183,7 +182,7 @@ int main(int argc, char *argv[])
     printf("execution time of findName() : %lf sec\n", cpu_time2);
 
     /* Release memory */
-    Stopwatch_delete(timer);
+    Stopwatch.destroy(timer);
 #ifndef OPT
     while (pHead) {
         e = pHead;

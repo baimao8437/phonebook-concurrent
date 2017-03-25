@@ -44,9 +44,9 @@ thread_arg *createThread_arg(char *data_begin, char *data_end,
  */
 void append(void *arg)
 {
-    Stopwatch_struct *cpu_time = Stopwatch_new();
+    watch_p cpu_time = Stopwatch.create();
 
-    Stopwatch_start(cpu_time);
+    Stopwatch.start(cpu_time);
 
     thread_arg *t_arg = (thread_arg *) arg;
 
@@ -65,7 +65,7 @@ void append(void *arg)
                   t_arg->threadID, t_arg->lEntry_tail->lastName);
     }
 
-    DEBUG_LOG("thread take %lf sec, count %d\n", Stopwatch_read(cpu_time), count);
+    DEBUG_LOG("thread take %lf sec, count %d\n", Stopwatch.read(cpu_time), count);
     pthread_exit(NULL);
 }
 
