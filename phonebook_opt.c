@@ -14,7 +14,6 @@ entry *findName(char lastname[], entry *pHead)
         if (strncasecmp(lastname, pHead->lastName, len) == 0
                 && (pHead->lastName[len] == '\n' ||
                     pHead->lastName[len] == '\0')) {
-            pHead->lastName[len] = '\0';
             if (!pHead->dtl)
                 pHead->dtl = (pdetail) malloc(sizeof(detail));
             return pHead;
@@ -68,6 +67,38 @@ void append(void *arg)
 
     DEBUG_LOG("thread take %lf sec, count %d\n", Stopwatch_read(cpu_time), count);
     pthread_exit(NULL);
+}
+
+entry *deleteName(char lastname[], entry *pHead)
+{
+    entry *first = pHead;
+    entry *previous = 0;
+    size_t len = strlen(lastname);
+    while (pHead) {
+        if (strncasecmp(lastname, pHead->lastName, len) == 0
+                && (pHead->lastName[len] == '\n' ||
+                    pHead->lastName[len] == '\0'))
+            break;
+        previous = pHead;
+        pHead = pHead->pNext;
+    }
+
+    if (!previous) {
+        // delete at head
+        first = pHead -> pNext;
+        free(pHead->dtl);
+    } else {
+        if (pHead->pNext) {
+            // delete at middle
+            previous->pNext = pHead->pNext;
+            free(pHead->dtl);
+        } else {
+            // delete at tail
+            previous->pNext = 0;
+            free(pHead->dtl);
+        }
+    }
+    return first;
 }
 
 void show_entry(entry *pHead)

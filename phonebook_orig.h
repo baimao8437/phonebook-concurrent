@@ -20,5 +20,6 @@ typedef struct __PHONE_BOOK_ENTRY {
 
 entry *findName(char lastname[], entry *pHead);
 entry *append(char lastName[], entry *e);
-
+entry *deleteName(char lastname[], entry *pHead);
+void show_entry(entry *pHead);
 #endif

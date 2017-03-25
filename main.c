@@ -30,6 +30,19 @@
 
 #define DICT_FILE "./dictionary/words.txt"
 
+#define THREAD_SET(l)\
+{\
+    thread_args[l] = createThread_arg(map + MAX_LAST_NAME_SIZE * l, map + file_size, l,\
+                                          THREAD_NUM, entry_pool + l);\
+    pthread_create(&threads[l], NULL, (void *)&append, (void *)thread_args[l]);\
+}
+
+#define DELETE(name)\
+{\
+    pHead = deleteName(name, pHead);\
+    e = pHead;\
+}
+
 int main(int argc, char *argv[])
 {
 #ifndef OPT
@@ -77,20 +90,16 @@ int main(int argc, char *argv[])
     /* Prepare for multi-threading */
     pthread_setconcurrency(THREAD_NUM + 1);
 
-    for (int i = 0; i < THREAD_NUM; i++)
-        // Created by malloc, remeber to free them.
-        thread_args[i] = createThread_arg(map + MAX_LAST_NAME_SIZE * i, map + file_size, i,
-                                          THREAD_NUM, entry_pool + i);
-
+    // Created by malloc, remeber to free them.
     /* Deliver the jobs to all threads and wait for completing */
     for (int i = 0; i < THREAD_NUM; i++)
-        pthread_create(&threads[i], NULL, (void *)&append, (void *)thread_args[i]);
+        THREAD_SET(i);
 
     for (int i = 0; i < THREAD_NUM; i++)
         pthread_join(threads[i], NULL);
 
     /* Connect the linked list of each thread, saperate the head */
-    pHead = thread_args[0]->lEntry_head->pNext;
+    pHead = thread_args[0]->lEntry_head;
     DEBUG_LOG("Connect %d head string %s %p\n", 0,
               pHead->lastName, thread_args[0]->data_begin);
     e = thread_args[0]->lEntry_tail;
@@ -99,7 +108,7 @@ int main(int argc, char *argv[])
     DEBUG_LOG("round %d\n", 0);
 
     for (int i = 1; i < THREAD_NUM; i++) {
-        e->pNext = thread_args[i]->lEntry_head->pNext;
+        e->pNext = thread_args[i]->lEntry_head;
         DEBUG_LOG("Connect %d head string %s %p\n", i,
                   e->pNext->lastName, thread_args[i]->data_begin);
         e = thread_args[i]->lEntry_tail;
@@ -107,6 +116,7 @@ int main(int argc, char *argv[])
                   e->lastName, thread_args[i]->data_begin);
         DEBUG_LOG("round %d\n", i);
     }
+
     /* Stop timing */
     Stopwatch_stop(timer);
 
@@ -127,14 +137,12 @@ int main(int argc, char *argv[])
         i = 0;
         e = append(line, e);
     }
-
     /* Stop timing */
     Stopwatch_stop(timer);
 
     /* close file as soon as possible */
     fclose(fp);
 #endif
-
     cpu_time1 = Stopwatch_read(timer);
 
     /* Find the given entry */
@@ -144,7 +152,17 @@ int main(int argc, char *argv[])
 
     assert(findName(input, e) &&
            "Did you implement findName() in " IMPL " ? ");
-    assert(0 == strcmp(findName(input, e)->lastName, "zyxel"));
+
+    /* Can delete name here */
+    // delete at head
+    char delete_name[MAX_LAST_NAME_SIZE] = "aaaa";
+    DELETE(delete_name);
+    // delete at middle
+    strcpy(delete_name, "zyxels");
+    DELETE(delete_name);
+    // delete at tail
+    strcpy(delete_name, "zzzzzzzz");
+    DELETE(delete_name);
 
 #if defined(__GNUC__)
     __builtin___clear_cache((char *) pHead, (char *) pHead + sizeof(entry));
@@ -152,7 +170,7 @@ int main(int argc, char *argv[])
     /* Compute the execution time */
     Stopwatch_reset(timer);
     Stopwatch_start(timer);
-    findName(input, e);
+    assert(findName(input, e) && "The name has been deleted");
     cpu_time2 = Stopwatch_read(timer);
 
     /* Write the execution time to file. */

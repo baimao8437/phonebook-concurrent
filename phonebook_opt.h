@@ -44,7 +44,7 @@ thread_arg *createThread_arg(char *data_begin, char *data_end,
                              entry *entryPool);
 
 void append(void *arg);
-
+entry *deleteName(char lastname[], entry *pHead);
 void show_entry(entry *pHead);
 
 #endif

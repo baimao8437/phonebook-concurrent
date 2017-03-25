@@ -26,3 +26,39 @@ entry *append(char lastName[], entry *e)
 
     return e;
 }
+
+entry *deleteName(char lastname[], entry *pHead)
+{
+    entry *first = pHead;
+    entry *previous = 0;
+    while (pHead) {
+        if (strcasecmp(lastname, pHead->lastName) == 0)
+            break;
+        previous = pHead;
+        pHead = pHead->pNext;
+    }
+    if (!previous) {
+        // delete at head
+        first = pHead -> pNext;
+        free(pHead);
+    } else {
+        if (pHead->pNext) {
+            // delete at middle
+            previous->pNext = pHead->pNext;
+            free(pHead);
+        } else {
+            // delete at tail
+            previous->pNext = 0;
+            free(pHead);
+        }
+    }
+    return first;
+}
+
+void show_entry(entry *pHead)
+{
+    while (pHead) {
+        printf("%s\n", pHead->lastName);
+        pHead = pHead->pNext;
+    }
+}
