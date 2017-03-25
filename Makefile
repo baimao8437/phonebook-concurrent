@@ -1,7 +1,7 @@
 CC ?= gcc
 CFLAGS_common ?= -Wall -std=gnu99
 CFLAGS_orig = -O0
-CFLAGS_opt  = -O0 -pthread -g -pg
+CFLAGS_opt  = -O0 -pthread -g -pg -DOPT
 
 ifdef CHECK_LEAK
 CFLAGS_common += -fsanitize=address -fno-omit-frame-pointer
@@ -29,15 +29,13 @@ SRCS_common = main.c
 tools/text_align: text_align.c tools/tool-text_align.c
 	$(CC) $(CFLAGS_common) $^ -o $@
 
-phonebook_orig: $(SRCS_common) phonebook_orig.c phonebook_orig.h stopwatch.c
+phonebook_orig: $(SRCS_common) phonebook_orig.c phonebook.h stopwatch.c
 	$(CC) $(CFLAGS_common) $(CFLAGS_orig) \
-		-DIMPL="\"$@.h\"" -o $@ \
-		$(SRCS_common) $@.c stopwatch.c
+		-o $@ $(SRCS_common) $@.c stopwatch.c
 
-phonebook_opt: $(SRCS_common) phonebook_opt.c phonebook_opt.h text_align.c stopwatch.c
+phonebook_opt: $(SRCS_common) phonebook_opt.c phonebook.h text_align.c stopwatch.c
 	$(CC) $(CFLAGS_common) $(CFLAGS_opt) \
-		-DIMPL="\"$@.h\"" -o $@ \
-		$(SRCS_common) $@.c text_align.c stopwatch.c
+		-o $@ $(SRCS_common) $@.c text_align.c stopwatch.c
 
 run: $(EXEC)
 	echo 3 | sudo tee /proc/sys/vm/drop_caches
